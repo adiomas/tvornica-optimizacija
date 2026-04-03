@@ -164,13 +164,7 @@ def generate_excel_report(
 # PDF REPORT
 # ═══════════════════════════════════════════════════
 
-_FONT_NAME = "tzh"
-
-import platform as _platform
-if _platform.system() == "Windows":
-    _FONT_PATH = "C:/Windows/Fonts/segoeui.ttf"
-else:
-    _FONT_PATH = "/System/Library/Fonts/Geneva.ttf"
+_FONT_NAME = "Helvetica"
 
 # Brand RGB tuples
 _GREEN = (74, 124, 40)
@@ -188,9 +182,7 @@ class PDFReport(FPDF):
     def __init__(self, period_str="", **kwargs):
         super().__init__(**kwargs)
         self._period = period_str
-        self.add_font(_FONT_NAME, "", _FONT_PATH, uni=True)
-        self.add_font(_FONT_NAME, "B", _FONT_PATH, uni=True)
-        self.add_font(_FONT_NAME, "I", _FONT_PATH, uni=True)
+        # Helvetica is built into fpdf2, no add_font needed
 
     def header(self):
         # Green top bar
