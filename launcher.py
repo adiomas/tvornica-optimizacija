@@ -9,6 +9,11 @@ import time
 import webview
 
 
+def is_compiled():
+    """Check if running as compiled exe (Nuitka or PyInstaller)."""
+    return getattr(sys, "frozen", False) or "__compiled__" in globals()
+
+
 def find_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("", 0))
@@ -16,38 +21,33 @@ def find_free_port():
 
 
 def get_app_path():
-    """Resolve app.py path — works both in dev and PyInstaller bundle."""
+    """Resolve app.py path — works in dev, PyInstaller, and Nuitka."""
     if getattr(sys, "frozen", False):
+        # PyInstaller
         return os.path.join(sys._MEIPASS, "app.py")
-    return os.path.join(os.path.dirname(__file__), "app.py")
+    # Nuitka onefile or dev mode — app.py is next to the exe/script
+    return os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "app.py")
 
 
 def start_streamlit_dev(port):
     """Dev mode: launch Streamlit via subprocess (normal Python)."""
-    env = os.environ.copy()
-    env["STREAMLIT_SERVER_PORT"] = str(port)
-    env["STREAMLIT_SERVER_HEADLESS"] = "true"
-    env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
-    env["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
-
     subprocess.Popen(
         [sys.executable, "-m", "streamlit", "run", get_app_path(),
          "--server.port", str(port),
          "--server.headless", "true",
          "--browser.gatherUsageStats", "false",
          "--server.fileWatcherType", "none"],
-        env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
 
 
-def start_streamlit_frozen(port):
-    """Frozen mode: run Streamlit in-process to avoid infinite subprocess loop.
+def start_streamlit_compiled(port):
+    """Compiled mode: run Streamlit in-process to avoid infinite subprocess loop.
 
-    In PyInstaller, sys.executable points to the .exe itself.
-    Calling subprocess.Popen([sys.executable, ...]) would re-run this launcher,
-    spawning infinite processes. Instead, we call Streamlit's CLI directly.
+    In compiled exes, sys.executable points to the .exe itself.
+    subprocess.Popen([sys.executable, ...]) would re-run this launcher
+    infinitely. Instead, we call Streamlit's CLI directly in-process.
     """
     os.environ["STREAMLIT_SERVER_PORT"] = str(port)
     os.environ["STREAMLIT_SERVER_HEADLESS"] = "true"
@@ -82,11 +82,9 @@ def wait_for_server(port, timeout=30):
 if __name__ == "__main__":
     port = find_free_port()
 
-    if getattr(sys, "frozen", False):
-        # Frozen (PyInstaller): run Streamlit in-process via thread
-        threading.Thread(target=start_streamlit_frozen, args=(port,), daemon=True).start()
+    if is_compiled():
+        threading.Thread(target=start_streamlit_compiled, args=(port,), daemon=True).start()
     else:
-        # Dev: launch Streamlit as subprocess
         threading.Thread(target=start_streamlit_dev, args=(port,), daemon=True).start()
 
     if not wait_for_server(port):

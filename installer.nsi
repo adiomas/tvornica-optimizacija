@@ -1,13 +1,7 @@
 ; ============================================================
-; TZH Promet vs Banka — One-Click NSIS Installer
+; TZH Promet vs Banka — Fast NSIS Installer (Nuitka onefile)
 ; ============================================================
-; Build: makensis installer.nsi
-; Requires: NSIS 3.x (https://nsis.sourceforge.io)
-; Input:  dist\TZH-Promet-vs-Banka\ (PyInstaller output)
-; Output: TZH-Promet-vs-Banka-Setup-x.x.x.exe
-; ============================================================
-; User experience: double-click → progress bar → app launches
-; No wizard, no questions, no admin required (installs to AppData)
+; Kopira samo 1 exe + ikonu → instalacija za par sekundi
 ; ============================================================
 
 !include "MUI2.nsh"
@@ -18,7 +12,6 @@
 !define APP_EXE       "TZH-Promet-vs-Banka.exe"
 !define APP_PUBLISHER "Tvornica Zdrave Hrane"
 !define APP_URL       "https://tvornicazdravehrane.hr"
-!define DIST_DIR      "dist\TZH-Promet-vs-Banka"
 
 ; Read version from version.py at compile time
 !searchparse /file "version.py" `__version__ = "` APP_VERSION `"`
@@ -42,10 +35,9 @@ SetCompressor /SOLID lzma
 ShowInstDetails show
 
 ; Only show the progress page — no welcome, no directory picker
-!define MUI_INSTFILESPAGE_COLORS "FFFFFF 000000"
 !insertmacro MUI_PAGE_INSTFILES
 
-; Finish page — show "Launch app" checkbox
+; Finish page
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT "Pokreni ${APP_NAME}"
 !define MUI_FINISHPAGE_TITLE "Instalacija zavrsena!"
@@ -63,27 +55,19 @@ ShowInstDetails show
 ; On Init — check if already running
 ; ============================================================
 Function .onInit
-    FindWindow $0 "" "${APP_NAME}"
-    ${If} $0 != 0
-        MessageBox MB_OKCANCEL|MB_ICONINFORMATION \
-            "${APP_NAME} je trenutno pokrenut.$\r$\n$\r$\nKliknite OK za zatvaranje i nastavak instalacije." \
-            IDOK close_app
-        Abort
-        close_app:
-            SendMessage $0 ${WM_CLOSE} 0 0
-            Sleep 2000
-    ${EndIf}
+    ; Kill any running instances
+    ExecWait 'taskkill /F /IM "${APP_EXE}" /T' $0
 FunctionEnd
 
 ; ============================================================
-; Install Section
+; Install Section — copies just 1 exe + icon (fast!)
 ; ============================================================
 Section "Install"
     SetOutPath "$INSTDIR"
-    DetailPrint "Kopiram datoteke..."
+    DetailPrint "Kopiram aplikaciju..."
 
-    ; Copy all files from PyInstaller dist
-    File /r "${DIST_DIR}\*.*"
+    ; Copy single Nuitka onefile exe
+    File "dist\${APP_EXE}"
 
     ; Copy icon
     File "assets\icon.ico"
@@ -145,7 +129,7 @@ SectionEnd
 ; Uninstall Section
 ; ============================================================
 Section "Uninstall"
-    ; Force-kill all running instances (prevents zombie processes)
+    ; Force-kill all running instances
     ExecWait 'taskkill /F /IM "${APP_EXE}" /T' $0
     Sleep 1000
 

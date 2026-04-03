@@ -19,22 +19,47 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build with Nuitka
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: launcher.py
+          mode: onefile
+          windows-icon-from-ico: assets/icon.ico
+          windows-console-mode: disable
+          output-dir: dist
+          output-file: TZH-Promet-vs-Banka.exe
+          include-data-dir: |
+            src=src
+            .streamlit=.streamlit
+          include-data-files: |
+            app.py=app.py
+            version.py=version.py
+          enable-plugins: anti-bloat
+          noinclude-pytest-mode: nofollow
+          noinclude-setuptools-mode: nofollow
+          noinclude-unittest-mode: nofollow
+          noinclude-IPython-mode: nofollow
+          product-name: "TZH Promet vs Banka"
+          company-name: "Tvornica Zdrave Hrane"
+          file-description: "Usporedba gotovinskog prometa i bankovnih izvoda"
+          file-version: "1.0.0.0"
+          product-version: "1.0.0.0"
+
+      - name: Verify Nuitka output
         run: |
-          pip install -r requirements.txt pyinstaller
+          $exe = "dist/TZH-Promet-vs-Banka.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Nuitka build failed - exe not found"
+            exit 1
+          }
+          $size = (Get-Item $exe).Length / 1MB
+          Write-Host "Build OK: TZH-Promet-vs-Banka.exe ($([math]::Round($size, 1)) MB)"
 
       - name: Install NSIS
         run: choco install nsis -y
-
-      - name: Build exe (PyInstaller)
-        run: pyinstaller build.spec
-
-      - name: Verify PyInstaller output
-        run: |
-          if (!(Test-Path "dist\TZH-Promet-vs-Banka\TZH-Promet-vs-Banka.exe")) {
-            Write-Error "PyInstaller output not found"
-            exit 1
-          }
-          Write-Host "PyInstaller build OK"
 
       - name: Build installer (NSIS)
         run: |
@@ -54,4 +79,11 @@ jobs:
         with:
           name: TZH-Promet-vs-Banka-Setup-${{ steps.version.outputs.VERSION }}
           path: TZH-Promet-vs-Banka-Setup-*.exe
+          retention-days: 30
+
+      - name: Upload portable exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: TZH-Promet-vs-Banka-Portable-${{ steps.version.outputs.VERSION }}
+          path: dist/TZH-Promet-vs-Banka.exe
           retention-days: 30
