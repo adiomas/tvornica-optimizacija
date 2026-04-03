@@ -12,16 +12,7 @@ from src.matcher import (
     get_unmatched_by_date,
 )
 from src.report import generate_excel_report, generate_pdf_report
-
-# Version — works in both dev mode and PyInstaller frozen bundle
-import os, sys
-_base = sys._MEIPASS if getattr(sys, "frozen", False) else os.path.dirname(__file__)
-__version__ = "0.0.0"
-with open(os.path.join(_base, "version.py"), encoding="utf-8") as _f:
-    for _line in _f:
-        if _line.startswith("__version__"):
-            __version__ = _line.split('"')[1]
-            break
+from version import __version__
 
 # --- Page Config (no sidebar) ---
 st.set_page_config(
