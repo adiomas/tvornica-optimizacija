@@ -25,6 +25,7 @@
 
 Name "${APP_NAME}"
 OutFile "TZH-Promet-vs-Banka-Setup-${APP_VERSION}.exe"
+Caption "Instaliranje ${APP_NAME} v${APP_VERSION}..."
 
 ; Install to AppData — no admin privileges needed
 InstallDir "$LOCALAPPDATA\${APP_NAME}"
@@ -32,22 +33,36 @@ InstallDirRegKey HKCU "Software\${APP_NAME}" "InstallDir"
 RequestExecutionLevel user
 
 SetCompressor /SOLID lzma
-ShowInstDetails nevershow
-AutoCloseWindow true
-SilentInstall silent
 
 ; --- MUI Configuration ---
 !define MUI_ICON "assets\icon.ico"
 !define MUI_UNICON "assets\icon.ico"
 
-; --- No wizard pages — only progress (shown via banner) ---
+; Show progress bar with file details
+ShowInstDetails show
+
+; Only show the progress page — no welcome, no directory picker
+!define MUI_INSTFILESPAGE_COLORS "FFFFFF 000000"
+!insertmacro MUI_PAGE_INSTFILES
+
+; Finish page — show "Launch app" checkbox
+!define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
+!define MUI_FINISHPAGE_RUN_TEXT "Pokreni ${APP_NAME}"
+!define MUI_FINISHPAGE_TITLE "Instalacija zavrsena!"
+!define MUI_FINISHPAGE_TEXT "${APP_NAME} v${APP_VERSION} je uspjesno instaliran.$\r$\n$\r$\nKliknite Zavrsi za pokretanje aplikacije."
+!insertmacro MUI_PAGE_FINISH
+
+; Uninstaller pages
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+; --- Language ---
 !insertmacro MUI_LANGUAGE "Croatian"
 
 ; ============================================================
-; On Init — show a simple splash/progress banner
+; On Init — check if already running
 ; ============================================================
 Function .onInit
-    ; Check if app is already running, close it
     FindWindow $0 "" "${APP_NAME}"
     ${If} $0 != 0
         MessageBox MB_OKCANCEL|MB_ICONINFORMATION \
@@ -65,12 +80,15 @@ FunctionEnd
 ; ============================================================
 Section "Install"
     SetOutPath "$INSTDIR"
+    DetailPrint "Kopiram datoteke..."
 
     ; Copy all files from PyInstaller dist
     File /r "${DIST_DIR}\*.*"
 
     ; Copy icon
     File "assets\icon.ico"
+
+    DetailPrint "Kreiram precice..."
 
     ; Create uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -85,6 +103,8 @@ Section "Install"
     ; --- Desktop shortcut ---
     CreateShortCut "$DESKTOP\${APP_NAME}.lnk" \
         "$INSTDIR\${APP_EXE}" "" "$INSTDIR\icon.ico" 0
+
+    DetailPrint "Registriram aplikaciju..."
 
     ; --- Registry: Add/Remove Programs (per-user) ---
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
@@ -118,8 +138,7 @@ Section "Install"
     WriteRegStr HKCU "Software\${APP_NAME}" "InstallDir" "$INSTDIR"
     WriteRegStr HKCU "Software\${APP_NAME}" "Version" "${APP_VERSION}"
 
-    ; --- Launch app immediately after install ---
-    Exec "$INSTDIR\${APP_EXE}"
+    DetailPrint "Instalacija zavrsena!"
 SectionEnd
 
 ; ============================================================
