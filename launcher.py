@@ -22,7 +22,8 @@ def get_app_path():
     return os.path.join(os.path.dirname(__file__), "app.py")
 
 
-def start_streamlit(port):
+def start_streamlit_dev(port):
+    """Dev mode: launch Streamlit via subprocess (normal Python)."""
     env = os.environ.copy()
     env["STREAMLIT_SERVER_PORT"] = str(port)
     env["STREAMLIT_SERVER_HEADLESS"] = "true"
@@ -41,7 +42,31 @@ def start_streamlit(port):
     )
 
 
-def wait_for_server(port, timeout=15):
+def start_streamlit_frozen(port):
+    """Frozen mode: run Streamlit in-process to avoid infinite subprocess loop.
+
+    In PyInstaller, sys.executable points to the .exe itself.
+    Calling subprocess.Popen([sys.executable, ...]) would re-run this launcher,
+    spawning infinite processes. Instead, we call Streamlit's CLI directly.
+    """
+    os.environ["STREAMLIT_SERVER_PORT"] = str(port)
+    os.environ["STREAMLIT_SERVER_HEADLESS"] = "true"
+    os.environ["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+    os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
+
+    sys.argv = [
+        "streamlit", "run", get_app_path(),
+        "--server.port", str(port),
+        "--server.headless", "true",
+        "--browser.gatherUsageStats", "false",
+        "--server.fileWatcherType", "none",
+    ]
+
+    from streamlit.web.cli import main
+    main()
+
+
+def wait_for_server(port, timeout=30):
     """Wait until Streamlit server is responsive."""
     import urllib.request
     start = time.time()
@@ -57,7 +82,12 @@ def wait_for_server(port, timeout=15):
 if __name__ == "__main__":
     port = find_free_port()
 
-    threading.Thread(target=start_streamlit, args=(port,), daemon=True).start()
+    if getattr(sys, "frozen", False):
+        # Frozen (PyInstaller): run Streamlit in-process via thread
+        threading.Thread(target=start_streamlit_frozen, args=(port,), daemon=True).start()
+    else:
+        # Dev: launch Streamlit as subprocess
+        threading.Thread(target=start_streamlit_dev, args=(port,), daemon=True).start()
 
     if not wait_for_server(port):
         print("Streamlit server failed to start.")

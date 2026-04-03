@@ -145,12 +145,9 @@ SectionEnd
 ; Uninstall Section
 ; ============================================================
 Section "Uninstall"
-    ; Close app if running
-    FindWindow $0 "" "${APP_NAME}"
-    ${If} $0 != 0
-        SendMessage $0 ${WM_CLOSE} 0 0
-        Sleep 2000
-    ${EndIf}
+    ; Force-kill all running instances (prevents zombie processes)
+    ExecWait 'taskkill /F /IM "${APP_EXE}" /T' $0
+    Sleep 1000
 
     ; Remove all installed files
     RMDir /r "$INSTDIR"
