@@ -1,0 +1,57 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt pyinstaller
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Build exe (PyInstaller)
+        run: pyinstaller build.spec
+
+      - name: Verify PyInstaller output
+        run: |
+          if (!(Test-Path "dist\TZH-Promet-vs-Banka\TZH-Promet-vs-Banka.exe")) {
+            Write-Error "PyInstaller output not found"
+            exit 1
+          }
+          Write-Host "PyInstaller build OK"
+
+      - name: Build installer (NSIS)
+        run: |
+          $env:PATH += ";C:\Program Files (x86)\NSIS"
+          makensis installer.nsi
+
+      - name: Get version
+        id: version
+        run: |
+          $ver = (Get-Content version.py | Select-String '__version__').ToString()
+          $ver = $ver -replace '.*"(.+)".*', '$1'
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $ver"
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TZH-Promet-vs-Banka-Setup-${{ steps.version.outputs.VERSION }}
+          path: TZH-Promet-vs-Banka-Setup-*.exe
+          retention-days: 30
