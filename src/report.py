@@ -164,32 +164,13 @@ def generate_excel_report(
 # PDF REPORT
 # ═══════════════════════════════════════════════════
 
-_FONT_NAME = "tzh"
+_FONT_NAME = "dejavu"
 
 import os as _os
-import platform as _platform
-
-def _find_font():
-    """Find a Unicode TTF font on any platform."""
-    candidates = [
-        # Linux (Streamlit Cloud / Ubuntu / Debian)
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-        # macOS
-        "/System/Library/Fonts/Helvetica.ttc",
-        "/System/Library/Fonts/Geneva.ttf",
-        "/System/Library/Fonts/Supplemental/Arial.ttf",
-        # Windows
-        "C:/Windows/Fonts/segoeui.ttf",
-        "C:/Windows/Fonts/arial.ttf",
-    ]
-    for path in candidates:
-        if _os.path.isfile(path):
-            return path
-    return None
-
-_FONT_PATH = _find_font()
+_ASSETS_DIR = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "assets")
+_FONT_REGULAR = _os.path.join(_ASSETS_DIR, "DejaVuSans.ttf")
+_FONT_BOLD = _os.path.join(_ASSETS_DIR, "DejaVuSans-Bold.ttf")
+_FONT_ITALIC = _os.path.join(_ASSETS_DIR, "DejaVuSans-Oblique.ttf")
 
 # Brand RGB tuples
 _GREEN = (74, 124, 40)
@@ -207,10 +188,9 @@ class PDFReport(FPDF):
     def __init__(self, period_str="", **kwargs):
         super().__init__(**kwargs)
         self._period = period_str
-        if _FONT_PATH:
-            self.add_font(_FONT_NAME, "", _FONT_PATH, uni=True)
-            self.add_font(_FONT_NAME, "B", _FONT_PATH, uni=True)
-            self.add_font(_FONT_NAME, "I", _FONT_PATH, uni=True)
+        self.add_font(_FONT_NAME, "", _FONT_REGULAR, uni=True)
+        self.add_font(_FONT_NAME, "B", _FONT_BOLD, uni=True)
+        self.add_font(_FONT_NAME, "I", _FONT_ITALIC, uni=True)
 
     def header(self):
         # Green top bar
