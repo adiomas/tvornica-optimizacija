@@ -31,17 +31,23 @@ jobs:
           windows-console-mode: disable
           output-dir: dist
           output-file: TZH-Promet-vs-Banka.exe
+          disable-plugins: anti-bloat
           include-data-dir: |
-            src=src
             .streamlit=.streamlit
           include-data-files: |
             app.py=app.py
             version.py=version.py
-          enable-plugins: anti-bloat
-          noinclude-pytest-mode: nofollow
-          noinclude-setuptools-mode: nofollow
-          noinclude-unittest-mode: nofollow
-          noinclude-IPython-mode: nofollow
+            src/__init__.py=src/__init__.py
+            src/excel_parser.py=src/excel_parser.py
+            src/matcher.py=src/matcher.py
+            src/pdf_parser.py=src/pdf_parser.py
+            src/report.py=src/report.py
+          nofollow-import-to: |
+            pytest
+            setuptools
+            unittest
+            IPython
+            tkinter
           product-name: "TZH Promet vs Banka"
           company-name: "Tvornica Zdrave Hrane"
           file-description: "Usporedba gotovinskog prometa i bankovnih izvoda"

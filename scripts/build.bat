@@ -5,7 +5,6 @@ REM ============================================================
 REM Prerequisites:
 REM   - Python 3.12+ with dependencies: pip install -r requirements.txt
 REM   - Nuitka: pip install nuitka
-REM   - C compiler (MSVC or MinGW — Nuitka downloads automatically)
 REM   - NSIS 3.x: https://nsis.sourceforge.io/Download
 REM ============================================================
 
@@ -50,15 +49,20 @@ python -m nuitka ^
     --mode=onefile ^
     --windows-console-mode=disable ^
     --windows-icon-from-ico=assets/icon.ico ^
-    --include-data-dir=src=src ^
     --include-data-dir=.streamlit=.streamlit ^
     --include-data-files=app.py=app.py ^
     --include-data-files=version.py=version.py ^
-    --enable-plugin=anti-bloat ^
-    --noinclude-pytest-mode=nofollow ^
-    --noinclude-setuptools-mode=nofollow ^
-    --noinclude-unittest-mode=nofollow ^
-    --noinclude-IPython-mode=nofollow ^
+    --include-data-files=src/__init__.py=src/__init__.py ^
+    --include-data-files=src/excel_parser.py=src/excel_parser.py ^
+    --include-data-files=src/matcher.py=src/matcher.py ^
+    --include-data-files=src/pdf_parser.py=src/pdf_parser.py ^
+    --include-data-files=src/report.py=src/report.py ^
+    --disable-plugin=anti-bloat ^
+    --nofollow-import-to=pytest ^
+    --nofollow-import-to=setuptools ^
+    --nofollow-import-to=unittest ^
+    --nofollow-import-to=IPython ^
+    --nofollow-import-to=tkinter ^
     --product-name="TZH Promet vs Banka" ^
     --company-name="Tvornica Zdrave Hrane" ^
     --output-dir=dist ^
